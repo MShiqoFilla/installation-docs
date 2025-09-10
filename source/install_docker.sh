@@ -35,3 +35,21 @@ sudo docker run hello-world
 
 # Source:
 # https://www.jagoweb.com/kb/knowledge-base-jagoweb/tutorial-install-docker-di-ubuntu/
+
+
+# Memulai kembali docker
+sudo systemctl start docker
+
+# Set docker agar auto start saat boot atau saat WSL dibuka
+sudo systemctl enable docker
+
+# Cek status docker
+systemcl status docker
+
+# Stop docker
+sudo systemctl stop docker
+sudo systemctl stop docker.socket
+sudo systemctl stop docker.service
+
+# Set docker agar tidak auto restart saat boot atau saat WSL dibuka
+sudo systemctl disable docker
