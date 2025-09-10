@@ -34,4 +34,4 @@ sudo docker run hello-world
 
 
 # Source:
-# https://www.jagoweb.com/kb/knowledge-base-jagoweb/tutorial-menggunakan-docker-compose/
+# https://www.jagoweb.com/kb/knowledge-base-jagoweb/tutorial-install-docker-di-ubuntu/
