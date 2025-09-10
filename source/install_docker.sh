@@ -5,7 +5,8 @@ sudo apt-get update
 sudo apt-get install ca-certificates curl
 
 
-# Selanjutnya, kita tambahkan kunci GPG resmi Docker. Ini adalah langkah keamanan untuk memastikan perangkat lunak yang kita unduh adalah asli.
+# Selanjutnya, kita tambahkan kunci GPG resmi Docker. 
+# Ini adalah langkah keamanan untuk memastikan perangkat lunak yang kita unduh adalah asli.
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -24,8 +25,13 @@ sudo apt-get update
 
 # Sekarang, kita instal paket-paket Docker.
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-# Ini akan menginstal semua yang kita butuhkan: mesin Docker itu sendiri (docker-ce), antarmuka baris perintah (cli), dan beberapa plugin berguna lainnya.
+# Ini akan menginstal semua yang kita butuhkan: mesin Docker itu sendiri (docker-ce), 
+# antarmuka baris perintah (cli), dan beberapa plugin berguna lainnya.
 
 
 # Uji Coba Pertama: Hello World!
 sudo docker run hello-world
+
+
+# Source:
+# https://www.jagoweb.com/kb/knowledge-base-jagoweb/tutorial-menggunakan-docker-compose/
