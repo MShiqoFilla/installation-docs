@@ -214,3 +214,240 @@ Automate backups via `cron` or systemd timers.
 **Rule of thumb:**
 
 > If a setting is convenient but global — it is probably unsafe for production.
+
+
+
+
+
+
+
+# Exposing a Local PostgreSQL Database to Other Machines (Including VPN Access)
+
+This guide explains **how to allow other machines to connect to your local PostgreSQL database**, including via VPN.
+
+> ⚠️ **Security note**: Do **NOT** expose PostgreSQL directly to the public internet. This tutorial is intended for **local network / office / VPN usage only**.
+
+---
+
+## 1. Prerequisites
+
+* PostgreSQL installed and running
+* You can connect locally using:
+
+```bash
+psql -U <user> -d <database>
+```
+
+* You have **sudo** access to the machine
+* VPN client configured (if using VPN)
+
+---
+
+## 2. Identify Your Machine IP Address
+
+Run:
+
+```bash
+ip addr
+```
+
+Look for interfaces with `inet` IPs. Typical candidates:
+
+* `lo` → 127.0.0.1 (ignore, local only)
+* `wlp0s20f3` or `enp0s31f6` → local Wi-Fi/Ethernet (LAN)
+* `tun0` → VPN interface (office network)
+
+### Example (VPN active):
+
+```
+8: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP>
+    inet 10.0.128.13/17
+```
+
+* Use this IP (`10.0.128.13`) if connecting from office network through VPN.
+
+**Tip:** Test reachability from the client:
+
+```bash
+ping <candidate IP>
+nc -vz <candidate IP> 5432  # test PostgreSQL port
+```
+
+Choose the IP that responds / is reachable.
+
+---
+
+## 3. Configure PostgreSQL to Listen on All Interfaces
+
+Edit `postgresql.conf`:
+
+```bash
+sudo nano /etc/postgresql/14/main/postgresql.conf
+```
+
+Set:
+
+```conf
+listen_addresses = '*'
+```
+
+Restart PostgreSQL:
+
+```bash
+sudo systemctl restart postgresql
+```
+
+Verify PostgreSQL is listening:
+
+```bash
+ss -lntp | grep 5432
+```
+
+Expected output:
+
+```text
+0.0.0.0:5432
+[::]:5432
+```
+
+---
+
+## 4. Allow Remote Clients in `pg_hba.conf`
+
+Edit:
+
+```bash
+sudo nano /etc/postgresql/14/main/pg_hba.conf
+```
+
+Add a rule for the reachable IP or subnet. Example for VPN:
+
+```conf
+host my_localdb shiqo 10.0.128.0/17 md5
+```
+
+Or a single IP:
+
+```conf
+host my_localdb shiqo 10.0.128.13/32 md5
+```
+
+Reload PostgreSQL:
+
+```bash
+sudo systemctl reload postgresql
+```
+
+---
+
+## 5. Set / Verify User Password
+
+Connect locally:
+
+```bash
+psql -U postgres
+```
+
+Set password:
+
+```sql
+ALTER USER shiqo WITH PASSWORD 'strong_password_here';
+```
+
+Exit:
+
+```sql
+\q
+```
+
+---
+
+## 6. Connect from Another Machine (CLI)
+
+Use the IP you verified as reachable (VPN or LAN):
+
+```bash
+psql -h 10.0.128.13 -U shiqo -d my_localdb -W
+```
+
+* Ping may fail due to firewall/ICMP restrictions, but PostgreSQL TCP connection works if allowed.
+
+---
+
+## 7. Connect Using DBeaver
+
+**Connection settings:**
+
+* Host: `10.0.128.13` (VPN IP)
+* Port: `5432`
+* Database: `my_localdb`
+* Username: `shiqo`
+* Password: your password
+
+Click **Test Connection** → should succeed.
+
+---
+
+## 8. Common Errors & Fixes
+
+### ❌ `no pg_hba.conf entry for host ...`
+
+Cause:
+
+* Client IP not allowed
+
+Fix:
+
+* Add the client IP or subnet to `pg_hba.conf`
+* Reload PostgreSQL
+
+### ❌ Works on one network, fails on another
+
+Cause:
+
+* Client IP changed (Wi-Fi / hotspot / VPN)
+
+Fix options:
+
+* Use the correct interface IP (LAN or VPN) in `pg_hba.conf` and client connection
+* Use SSH tunnel or VPN (recommended)
+
+---
+
+## 9. Understanding `/24` vs `/32`
+
+| CIDR  | Meaning                      |
+| ----- | ---------------------------- |
+| `/32` | Single IP only (most secure) |
+| `/24` | 256 IPs (same subnet)        |
+| `/16` | 65k IPs (use carefully)      |
+
+Recommended:
+
+* Single machine → `/32`
+* Office LAN or VPN subnet → `/24` or `/17` depending on VPN configuration
+
+---
+
+## 10. Recommended Safer Alternatives
+
+* SSH tunnel (works regardless of dynamic IP)
+* VPN (Tailscale, WireGuard)
+* Docker + internal network
+
+---
+
+## 11. Quick Checklist
+
+* [x] PostgreSQL running
+* [x] `listen_addresses = '*'`
+* [x] `pg_hba.conf` updated for reachable IP/subnet
+* [x] Password set
+* [x] Port 5432 listening
+* [x] Client can reach server IP (VPN or LAN)
+
+---
+
+## Done ✅
+
+Your local PostgreSQL is now accessible from other machines **over LAN or VPN** securely.
