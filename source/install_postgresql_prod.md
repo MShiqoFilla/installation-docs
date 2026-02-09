@@ -216,16 +216,16 @@ Automate backups via `cron` or systemd timers.
 > If a setting is convenient but global — it is probably unsafe for production.
 
 
+---
+
+---
 
 
+# Exposing a Local PostgreSQL Database to Other Machines (LAN & VPN)
 
+This guide explains **how to allow other machines to connect to your local PostgreSQL database**, either over **local network (LAN)** or via **VPN**.
 
-
-# Exposing a Local PostgreSQL Database to Other Machines (Including VPN Access)
-
-This guide explains **how to allow other machines to connect to your local PostgreSQL database**, including via VPN.
-
-> ⚠️ **Security note**: Do **NOT** expose PostgreSQL directly to the public internet. This tutorial is intended for **local network / office / VPN usage only**.
+> ⚠️ **Security note**: Do **NOT** expose PostgreSQL directly to the public internet. This tutorial is intended for **internal network, office, or VPN usage only**.
 
 ---
 
@@ -239,7 +239,7 @@ psql -U <user> -d <database>
 ```
 
 * You have **sudo** access to the machine
-* VPN client configured (if using VPN)
+* VPN client configured if you plan to use VPN
 
 ---
 
@@ -254,17 +254,20 @@ ip addr
 Look for interfaces with `inet` IPs. Typical candidates:
 
 * `lo` → 127.0.0.1 (ignore, local only)
-* `wlp0s20f3` or `enp0s31f6` → local Wi-Fi/Ethernet (LAN)
-* `tun0` → VPN interface (office network)
+* Wi-Fi / Ethernet (`wlp0s20f3`, `enp0s31f6`) → local LAN IP (office network)
+* VPN interface (`tun0`) → VPN network IP
+
+### Example (LAN active):
+
+```
+wlp0s20f3: inet 10.1.20.95/18
+```
 
 ### Example (VPN active):
 
 ```
-8: tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP>
-    inet 10.0.128.13/17
+tun0: inet 10.0.128.13/17
 ```
-
-* Use this IP (`10.0.128.13`) if connecting from office network through VPN.
 
 **Tip:** Test reachability from the client:
 
@@ -274,6 +277,9 @@ nc -vz <candidate IP> 5432  # test PostgreSQL port
 ```
 
 Choose the IP that responds / is reachable.
+
+* **LAN access:** use your Wi-Fi/Ethernet IP
+* **VPN access:** use your VPN interface IP (`tun0`)
 
 ---
 
@@ -320,16 +326,25 @@ Edit:
 sudo nano /etc/postgresql/14/main/pg_hba.conf
 ```
 
-Add a rule for the reachable IP or subnet. Example for VPN:
+Add a rule for the reachable IP or subnet:
+
+### For LAN access:
+
+```conf
+host my_localdb shiqo 10.1.20.0/18 md5
+```
+
+### For VPN access:
 
 ```conf
 host my_localdb shiqo 10.0.128.0/17 md5
 ```
 
-Or a single IP:
+Or allow a single IP:
 
 ```conf
-host my_localdb shiqo 10.0.128.13/32 md5
+host my_localdb shiqo 10.1.20.95/32 md5  # LAN
+host my_localdb shiqo 10.0.128.13/32 md5 # VPN
 ```
 
 Reload PostgreSQL:
@@ -364,13 +379,21 @@ Exit:
 
 ## 6. Connect from Another Machine (CLI)
 
-Use the IP you verified as reachable (VPN or LAN):
+Use the IP you verified as reachable:
+
+### LAN example:
+
+```bash
+psql -h 10.1.20.95 -U shiqo -d my_localdb -W
+```
+
+### VPN example:
 
 ```bash
 psql -h 10.0.128.13 -U shiqo -d my_localdb -W
 ```
 
-* Ping may fail due to firewall/ICMP restrictions, but PostgreSQL TCP connection works if allowed.
+> Ping may fail due to firewall/ICMP restrictions, but PostgreSQL TCP connection works if allowed.
 
 ---
 
@@ -378,8 +401,8 @@ psql -h 10.0.128.13 -U shiqo -d my_localdb -W
 
 **Connection settings:**
 
-* Host: `10.0.128.13` (VPN IP)
-* Port: `5432`
+* Host: LAN or VPN IP
+* Port: 5432
 * Database: `my_localdb`
 * Username: `shiqo`
 * Password: your password
@@ -392,25 +415,13 @@ Click **Test Connection** → should succeed.
 
 ### ❌ `no pg_hba.conf entry for host ...`
 
-Cause:
-
-* Client IP not allowed
-
-Fix:
-
-* Add the client IP or subnet to `pg_hba.conf`
-* Reload PostgreSQL
+* Cause: Client IP not allowed
+* Fix: Add the client IP/subnet to `pg_hba.conf`, reload PostgreSQL
 
 ### ❌ Works on one network, fails on another
 
-Cause:
-
-* Client IP changed (Wi-Fi / hotspot / VPN)
-
-Fix options:
-
-* Use the correct interface IP (LAN or VPN) in `pg_hba.conf` and client connection
-* Use SSH tunnel or VPN (recommended)
+* Cause: Client IP changed (Wi-Fi / hotspot / VPN)
+* Fix: Use correct interface IP in `pg_hba.conf` and client connection; consider SSH tunnel or VPN
 
 ---
 
@@ -425,7 +436,7 @@ Fix options:
 Recommended:
 
 * Single machine → `/32`
-* Office LAN or VPN subnet → `/24` or `/17` depending on VPN configuration
+* Office LAN or VPN subnet → `/24` or `/17` depending on network size
 
 ---
 
@@ -441,10 +452,10 @@ Recommended:
 
 * [x] PostgreSQL running
 * [x] `listen_addresses = '*'`
-* [x] `pg_hba.conf` updated for reachable IP/subnet
+* [x] `pg_hba.conf` updated for reachable IP/subnet (LAN and/or VPN)
 * [x] Password set
 * [x] Port 5432 listening
-* [x] Client can reach server IP (VPN or LAN)
+* [x] Client can reach server IP (LAN or VPN)
 
 ---
 
