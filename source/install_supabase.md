@@ -57,14 +57,16 @@ The default POOLER_TENANT_ID is your-tenant-id (can be changed in .env), and the
 
 For session-based connections (equivalent to a direct Postgres connection):
 
-```bash
-psql 'postgres://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[your-domain]:5432/postgres'```
 
+```bash 
+psql 'postgres://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[your-domain]:5432/postgres'
+```
 For pooled transactional connections:
 
-```bash
+```bash 
 psql 'postgres://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[your-domain]:6543/postgres'
 ```
+
 
 When using psql with command-line parameters instead of a connection string to connect to Supavisor, the -U parameter should also be postgres.[POOLER_TENANT_ID], and not just postgres.
 
