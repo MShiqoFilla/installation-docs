@@ -35,3 +35,7 @@ services:
 
 volumes:
   es_data:
+
+
+# Run it: 
+# docker compose -f es-kibana-docker-compose.yml up -d
