@@ -38,4 +38,4 @@ volumes:
 
 
 # Run it: 
-# docker compose -f es-kibana-docker-compose.yml up -d
+# docker compose -f es-kibana-dev-docker-compose.yml up -d
